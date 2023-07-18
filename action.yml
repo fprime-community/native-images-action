@@ -40,6 +40,7 @@ runs:
   - run: |
       echo "Setup GraalVM Environment"
       $GITHUB_ACTION_PATH/env-setup
+      echo "ARCH=$( uname -m)" >> $GITHUB_ENV
     shell: bash
   - run: |
       echo "Build JAR files"
@@ -52,7 +53,7 @@ runs:
       cd ${{ inputs.working-directory }}
       mkdir -p "${{ inputs.trace-directory }}"
       export TRACE_METADATA_DIRECTORY="${{ inputs.trace-directory }}"
-      #export PATH="${GITHUB_ACTION_PATH}:${PATH}"
+      export PATH="${GITHUB_ACTION_PATH}:${PATH}"
       ${{ inputs.test }}
       echo "CLASSPATH=${{ inputs.trace-directory }}:${CLASSPATH}" >> $GITHUB_ENV
     shell: bash
@@ -66,3 +67,19 @@ runs:
       cd ${{ inputs.working-directory }}
       ${{ inputs.test }}
     shell: bash
+  - run:  |
+      echo "Archiving Tools"
+      tar -czf ${$GITHUB_WORKSPACE}/fprime-layout-$ARCH.tar.gz ${{ inputs.output-directory }}
+    shell: bash
+  - if: ${{ github.event_name == 'release' }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    run: |
+      ${GITHUB_ACTION_PATH}/publish ${$GITHUB_WORKSPACE}/fprime-layout-$ARCH.tar.gz
+    shell: bash
+  - if: ${{ github.event_name != 'release' }}
+    uses: actions/upload-artifact@v3
+    with:
+      name: fprime-layout-$ARCH
+      path: ${$GITHUB_WORKSPACE}/fprime-layout-$ARCH.tar.gz
+      retention-days: 5
