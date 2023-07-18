@@ -72,8 +72,6 @@ runs:
       tar -czf ${$GITHUB_WORKSPACE}/fprime-layout-$ARCH.tar.gz ${{ inputs.output-directory }}
     shell: bash
   - if: ${{ github.event_name == 'release' }}
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     run: |
       ${GITHUB_ACTION_PATH}/publish ${$GITHUB_WORKSPACE}/fprime-layout-$ARCH.tar.gz
     shell: bash
