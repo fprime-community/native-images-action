@@ -1,0 +1,68 @@
+name: 'fprime-build-native-scala'
+description: 'Build a Scala code as a Native Image'
+author: 'The F´ Team'
+
+# Inputs to the workflow
+inputs:
+  architecture:
+    description: "Architecture that represents the build"
+  working-directory:
+    description: "Working directory to use when running commands"
+    required: true
+    default: $GITHUB_WORKSPACE
+  build:
+    description: "Build command for generating compiled JARs"
+    required: true
+    default: "$GITHUB_WORKSPACE/install"
+  output-directory:
+    description: "Directory for output of the build"
+    required: true
+    default: $GITHUB_WORKSPACE/bin
+  test:
+    description: "Test command used to generate tracing and prove output"
+    required: true
+    default: "$GITHUB_WORKSPACE/test"
+  trace:
+    description: "Turn off tracing step"
+    required: true
+    default: "true"
+  trace-directory:
+    description: "Directory for tracing output"
+    required: true
+    default: $GITHUB_WORKSPACE/trace
+  tools:
+    description: "List of tools to build"
+
+# Action steps
+runs:
+  using: "composite"
+  steps:
+  - run: |
+      echo "Setup GraalVM Environment"
+      $GITHUB_ACTION_PATH/env-setup
+    shell: bash
+  - run: |
+      echo "Build JAR files"
+      cd ${{ inputs.working-directory }}
+      ${{ inputs.build }} ${{ inputs.output-directory }}
+    shell: bash
+  - if: ${{ inputs.trace == 'true' }}
+    run: |
+      echo "Trace JAR files via tests"
+      cd ${{ inputs.working-directory }}
+      mkdir -p "${{ inputs.trace-directory }}"
+      export TRACE_METADATA_DIRECTORY="${{ inputs.trace-directory }}"
+      #export PATH="${GITHUB_ACTION_PATH}:${PATH}"
+      ${{ inputs.test }}
+      echo "CLASSPATH=${{ inputs.trace-directory }}:${CLASSPATH}" >> $GITHUB_ENV
+    shell: bash
+  - run: |
+      echo "Build Native Images"
+      cd ${{ inputs.working-directory }}
+      $GITHUB_ACTION_PATH/native-images "${{ inputs.output-directory }}" ${{ inputs.tools }}
+    shell: bash
+  - run: |
+      echo "Test Native Outputs"
+      cd ${{ inputs.working-directory }}
+      ${{ inputs.test }}
+    shell: bash
