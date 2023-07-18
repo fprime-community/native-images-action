@@ -29,7 +29,7 @@ inputs:
   trace-directory:
     description: "Directory for tracing output"
     required: true
-    default: $GITHUB_WORKSPACE/trace
+    default: $GITHUB_WORKSPACE/trace/META-INF/native-image/
   tools:
     description: "List of tools to build"
 
