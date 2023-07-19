@@ -78,6 +78,6 @@ runs:
   - if: ${{ github.event_name != 'release' }}
     uses: actions/upload-artifact@v3
     with:
-      name: fprime-layout-${ARCH}
-      path: ${GITHUB_WORKSPACE}/fprime-layout-${ARCH}.tar.gz
+      name: fprime-layout-${{ env.ARCH }}
+      path: fprime-layout-${{ env.ARCH }}.tar.gz
       retention-days: 5
