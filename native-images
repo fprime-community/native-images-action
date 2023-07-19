@@ -26,7 +26,8 @@ fi
 # Calculate directories
 tool_dir="$1"
 native_dir="${tool_dir}-native"
-
+native_final="${tool_dir}-final"
+mkdir -p "${native_final}"
 # Remove $1
 shift;
 tool_names="$@"
@@ -50,6 +51,7 @@ do
         exit 1
     fi
     sync; sync; sync; # Magic to fix filesystem woes
+    cp "${out_file}" "${native_final}"
 done
 mv "$tool_dir" "$tool_dir.old"
-mv "$native_dir" "$tool_dir"
+mv "$native_final" "$tool_dir"
