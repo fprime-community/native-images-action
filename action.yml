@@ -69,15 +69,15 @@ runs:
     shell: bash
   - run:  |
       echo "Archiving Tools"
-      tar -czf ${$GITHUB_WORKSPACE}/fprime-layout-$ARCH.tar.gz ${{ inputs.output-directory }}
+      tar -czf ${GITHUB_WORKSPACE}/fprime-layout-${ARCH}.tar.gz ${{ inputs.output-directory }}
     shell: bash
   - if: ${{ github.event_name == 'release' }}
     run: |
-      ${GITHUB_ACTION_PATH}/publish ${$GITHUB_WORKSPACE}/fprime-layout-$ARCH.tar.gz
+      ${GITHUB_ACTION_PATH}/publish ${GITHUB_WORKSPACE}/fprime-layout-${ARCH}.tar.gz
     shell: bash
   - if: ${{ github.event_name != 'release' }}
     uses: actions/upload-artifact@v3
     with:
-      name: fprime-layout-$ARCH
-      path: ${$GITHUB_WORKSPACE}/fprime-layout-$ARCH.tar.gz
+      name: fprime-layout-${ARCH}
+      path: ${GITHUB_WORKSPACE}/fprime-layout-${ARCH}.tar.gz
       retention-days: 5
