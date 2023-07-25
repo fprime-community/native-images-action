@@ -1,0 +1,118 @@
+name: 'fprime-build-native-scala'
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: "Working directory to use when running commands"
+        required: false
+        default: .
+        type: string
+      build:
+        description: "Build command for generating compiled JARs"
+        required: false
+        default: $GITHUB_WORKSPACE/install
+        type: string
+      output-directory:
+        description: "Directory for output of the build"
+        required: false
+        default: ./bin
+        type: string
+      test:
+        description: "Test command used to generate tracing and prove output"
+        required: false
+        default: $GITHUB_WORKSPACE/test
+        type: string
+      trace:
+        description: "Turn off tracing step"
+        required: false
+        default: true
+        type: boolean
+      trace-directory:
+        description: "Directory for tracing output"
+        required: false
+        default: $GITHUB_WORKSPACE/trace/META-INF/native-image/
+        type: string
+jobs:
+  build-jars:
+    runs-on: "ubuntu-latest"
+    name: "Build Standard JARs"
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: "Checkout Native Image Tools"
+        uses: actions/checkout@v3
+        with:
+          repository: fprime-community/native-images-action
+          submodules: recursive
+          ref: main
+          path: native-image-tools
+      - name: "Setting up GraalVM/Java Environment"
+        run: |
+          echo "Setup GraalVM Environment"
+          export NATIVE_IMAGE_TOOLS_PATH="$GITHUB_WORKSPACE/native-image-tools"
+          echo "NATIVE_IMAGE_TOOLS_PATH=${NATIVE_IMAGE_TOOLS_PATH}" >> $GITHUB_ENV
+          $NATIVE_IMAGE_TOOLS_PATH/env-setup
+        shell: bash
+      - name: "Building JAR files"
+        run: |
+          echo "Build JAR files"
+          cd ${{ inputs.working-directory }}
+          ${{ inputs.build }} ${{ inputs.output-directory }}
+        shell: bash
+      - name: 'Archiving JARs package'
+        uses: actions/upload-artifact@v3
+        with:
+          name: "Standard JARs"
+          path: ${{ inputs.output-directory }}
+          retention-days: 5
+
+#
+#
+#  using: "composite"
+#  steps:
+#  - run: |
+#      echo "Setup GraalVM Environment"
+#      $GITHUB_ACTION_PATH/env-setup
+#      echo "ARCH=$( uname -m)" >> $GITHUB_ENV
+#    shell: bash
+#  - run: |
+#      echo "Build JAR files"
+#      cd ${{ inputs.working-directory }}
+#      ${{ inputs.build }} ${{ inputs.output-directory }}
+#    shell: bash
+#  - if: ${{ inputs.trace == 'true' }}
+#    run: |
+#      echo "Trace JAR files via tests"
+#      cd ${{ inputs.working-directory }}
+#      mkdir -p "${{ inputs.trace-directory }}"
+#      export TRACE_METADATA_DIRECTORY="${{ inputs.trace-directory }}"
+#      export PATH="${GITHUB_ACTION_PATH}:${PATH}"
+#      ${{ inputs.test }}
+#      echo "CLASSPATH=${{ inputs.trace-directory }}:${CLASSPATH}" >> $GITHUB_ENV
+#    shell: bash
+#  - run: |
+#      echo "Build Native Images"
+#      cd ${{ inputs.working-directory }}
+#      $GITHUB_ACTION_PATH/native-images "${{ inputs.output-directory }}" ${{ inputs.tools }}
+#    shell: bash
+#  - run: |
+#      echo "Test Native Outputs"
+#      cd ${{ inputs.working-directory }}
+#      ${{ inputs.test }}
+#    shell: bash
+#  - run:  |
+#      echo "Archiving Tools"
+#      tar -czf ${GITHUB_WORKSPACE}/fprime-layout-${ARCH}.tar.gz ${{ inputs.output-directory }}
+#    shell: bash
+#  - if: ${{ github.event_name == 'release' }}
+#    run: |
+#      ${GITHUB_ACTION_PATH}/publish ${GITHUB_WORKSPACE}/fprime-layout-${ARCH}.tar.gz
+#    shell: bash
+#  - if: ${{ github.event_name != 'release' }}
+#    uses: actions/upload-artifact@v3
+#    with:
+#      name: fprime-layout-${{ env.ARCH }}
+#      path: fprime-layout-${{ env.ARCH }}.tar.gz
+#      retention-days: 5
