@@ -41,20 +41,8 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: "Checkout Native Image Tools"
-        uses: actions/checkout@v3
-        with:
-          repository: fprime-community/native-images-action
-          submodules: recursive
-          ref: main
-          path: native-image-tools
-      - name: "Setting up GraalVM/Java Environment"
-        run: |
-          echo "Setup GraalVM Environment"
-          export NATIVE_IMAGE_TOOLS_PATH="$GITHUB_WORKSPACE/native-image-tools"
-          echo "NATIVE_IMAGE_TOOLS_PATH=${NATIVE_IMAGE_TOOLS_PATH}" >> $GITHUB_ENV
-          $NATIVE_IMAGE_TOOLS_PATH/env-setup
-        shell: bash
+      - name: "Setup Native Image Tools"
+        uses: fprime-community/native-images-action@main
       - name: "Building JAR files"
         run: |
           echo "Build JAR files"
@@ -67,6 +55,12 @@ jobs:
           name: "Standard JARs"
           path: ${{ inputs.output-directory }}
           retention-days: 5
+  #build-native-images:
+  #  - run: |
+  #      echo "Build Native Images"
+  #      cd ${{ inputs.working-directory }}
+  #      $GITHUB_ACTION_PATH/native-images "${{ inputs.output-directory }}" ${{ inputs.tools }}
+  #    shell: bash
 
 #
 #
