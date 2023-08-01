@@ -11,6 +11,7 @@ def main():
     parser.add_argument("--clean", default=False, action="store_true", help="Remove outdir if it exists")
     parser.add_argument("--working-directory", default=Path.cwd() / "packages", help="Working directory for building")
     parser.add_argument("--outdir", default=None, type=Path, help="Output directory for the distribution packages")
+    parser.add_argument("--package-tag", required=True, type=str, help="Package tag for packages being built")
     parser.add_argument("directory", type=Path, help="'bin' directory to use for input files")
     arguments = parser.parse_args()
 
@@ -32,6 +33,7 @@ def main():
             arguments.directory,
             arguments.working_directory,
             arguments.outdir,
+            None if list(arguments.directory.glob("*.jar")) else arguments.package_tag,
             [".jar"] if list(arguments.directory.glob("*.jar")) else None
         )
     except OSError as oe:

@@ -11,7 +11,7 @@ MANY_LINUX_SPECIFIER = "2.28"
 MAC_SPECIFIER = "10.9"
 
 
-def build_packages_from_directory(directory: Path, working: Path, outdir: Path, extensions: Union[List[str], None] = None):
+def build_packages_from_directory(directory: Path, working: Path, outdir: Path, package_tag: str, extensions: Union[List[str], None] = None):
     """ Build a set of packages around tools found in a directory
 
     Given a directory this will build a PIP package that wraps each tool in that directory. Tools will be filtered by
@@ -21,6 +21,7 @@ def build_packages_from_directory(directory: Path, working: Path, outdir: Path, 
         directory: path to the directory to search
         working: working directory
         outdir: output wheel directory forwarded to build
+        package_tag: package tag to apply to package
         extensions: extensions to filter tools down too
 
     Return:
@@ -34,9 +35,9 @@ def build_packages_from_directory(directory: Path, working: Path, outdir: Path, 
         if tool.suffix not in extensions:
             print(f"[INFO] Skipping {tool} with unaccepted extension")
             continue
-        print(f"[INFO] Building package around {tool}")
+        print(f"[INFO] Building package around {tool} with tag {package_tag}")
         directory = generate_tool_package(tool, environment, working)
-        build_wheel(directory, outdir, ".jar" in extensions)
+        build_wheel(directory, outdir, package_tag)
 
 
 def generate_tool_package(tool: Path, environment: Environment, working: Path) -> Path:
@@ -69,7 +70,7 @@ def generate_tool_package(tool: Path, environment: Environment, working: Path) -
     return package_path
 
 
-def build_wheel(package_directory: Path, outdir: Path, universal=False):
+def build_wheel(package_directory: Path, outdir: Path, package_tag: str):
     """ Build a wheel package using 'build'
 
     Generates a wheel package using the python package builder "build". The package generated is specified as
@@ -79,22 +80,14 @@ def build_wheel(package_directory: Path, outdir: Path, universal=False):
     Arguments:
         package_directory: directory containing a buildable python package
         outdir: forwarded to builds --outdir option
-        universal: when true will build a universal (JAR) wheel. Defaults to building platform specific wheel
+        package_tag: when true will build a universal (JAR) wheel. Defaults to building platform specific wheel
     """
     build_arguments = [
         sys.executable, "-m", "build", "--wheel", "--outdir", str(outdir.resolve()),
         str(package_directory.resolve())
     ]
 
-    if not universal:
-        if platform.system() == "Linux":
-            assert float(platform.libc_ver()[1]) <= float(MANY_LINUX_SPECIFIER),\
-                "Lib-C version too new, refusing to build package"
-            platform_machine = platform.uname().machine
-            platform_tag = f"manylinux_{MANY_LINUX_SPECIFIER.replace('.', '_')}_{ platform_machine }"
-        elif platform.system() == "Darwin":
-            platform_tag = f"macosx-{ MAC_SPECIFIER }_universal2"
-        else:
-            raise Exception(f"[ERROR] { platform.system() } does not support packages.")
-        build_arguments.append(f'--config-setting="--global-option=--plat-name={ platform_tag }"')
+    if package_tag is not None:
+        build_arguments.append(f'--config-setting=--global-option=--plat-name={ package_tag }')
+    print(f"[INFO] Running: {' '.join(build_arguments)}")
     subprocess.run(build_arguments, check=True)
