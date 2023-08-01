@@ -17,6 +17,8 @@ jobs:
           fetch-depth: 0
       - name: "Setup Python"
         uses: actions/setup-python@v4
+      - name: "Install Build tool"
+        run: pip3 install build
       - name: Build
         run: python3 -m build
       - name: Publish distributions to TestPyPI
