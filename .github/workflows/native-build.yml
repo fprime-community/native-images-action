@@ -113,6 +113,10 @@ jobs:
       matrix:
         package_tag: ["manylinux_2_28", "jar"]
     steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - name: "Download Package"
         uses: actions/download-artifact@v3
         with:
@@ -125,6 +129,12 @@ jobs:
         run: |
           fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.package_tag }}
         shell: bash
+      - name: Publish distributions to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+      - name: Publish distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
 #  build-native-images-non-linux:
 #    needs: build-jars
 #    strategy:
