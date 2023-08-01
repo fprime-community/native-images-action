@@ -51,7 +51,7 @@ jobs:
       - name: "Archiving JARs package"
         uses: actions/upload-artifact@v3
         with:
-          name: jar-build
+          name: build-jar
           path: ${{ inputs.output-directory }}
           retention-days: 5
           if-no-files-found: error
@@ -86,7 +86,7 @@ jobs:
       - name: "Download JARs"
         uses: actions/download-artifact@v3
         with:
-          name: jar-build
+          name: build-jar
           path: bin
       - name: "Download Tracing"
         uses: actions/download-artifact@v3
@@ -102,10 +102,29 @@ jobs:
       - name: "Archive Native Images"
         uses: actions/upload-artifact@v3
         with:
-          name: native-images-manylinux_2_28
+          name: build-manylinux_2_28
           path: bin/*
           retention-days: 5
           if-no-files-found: error
+  build-native-packages:
+    needs: [build-native-images-linux]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package_tag: ["manylinux_2_28", "jar"]
+    steps:
+      - name: "Download Package"
+        uses: actions/download-artifact@v3
+        with:
+          name: build-${{ matrix.package_tag }}
+          path: ${{ inputs.output-directory }}
+      - name: "Install Builder"
+        run: pip install fprime-native-images
+        shell: bash
+      - name: "Run Builder"
+        run: |
+          fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.package_tag }}
+        shell: bash
 #  build-native-images-non-linux:
 #    needs: build-jars
 #    strategy:
@@ -122,7 +141,7 @@ jobs:
 #      - name: "Download JARs"
 #        uses: actions/download-artifact@v3
 #        with:
-#          name: jar-build
+#          name: build-jar
 #          path: bin
 #      - name: "Download Tracing"
 #        uses: actions/download-artifact@v3
