@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fprime-native-images"
+authors = [
+    {name = "Michael Starch", email = "Michael.D.Starch@jpl.nasa.gov"},
+]
+description = "Package designed to help build native image packages"
+readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["fpp", "fprime", "embedded", "nasa"]
+license = {text = "Apache 2.0 License"}
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+]
+dependencies = [
+    "Jinja2>=2.11.3",
+    "build",
+    'importlib-metadata; python_version<"3.8"',
+]
+dynamic = ["version"]
+
+[project.scripts]
+fprime-native-packager="fprime_native_images.__main__:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+namespaces = true
+where = ["src"]
+
+[tool.setuptools.package-data]
+"fprime_native_images.templates" = ["*.j2"]
