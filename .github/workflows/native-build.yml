@@ -177,6 +177,7 @@ jobs:
           retention-days: 5
           if-no-files-found: error
   publish-native-wheels:
+    if: ${{ github.event_name == 'release' }}
     needs: [build-native-wheels]
     runs-on: ubuntu-latest
     strategy:
@@ -203,103 +204,3 @@ jobs:
         run: |
           twine upload -u "__token__" dist/*
         shell: bash
-#  build-native-images-non-linux:
-#    needs: build-jars
-#    strategy:
-#      matrix:
-#        runner: ["macos-11", "odroid"]
-#    runs-on: ${{ matrix.runner }}
-#    steps:
-#      - name: "Checkout repository"
-#        uses: actions/checkout@v3
-#        with:
-#          submodules: recursive
-#      - name: "Setup Native Image Tools"
-#        uses: fprime-community/native-images-action@main
-#      - name: "Download JARs"
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: build-jar
-#          path: bin
-#      - name: "Download Tracing"
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: jar-traces
-#          path: ${{ inputs.trace-directory }}
-#      - name: "Build Native Images"
-#        if: ${{ matrix.runner != "ubuntu-latest" }}
-#        run: |
-#          cd ${{ inputs.working-directory }}
-#          export CLASSPATH="${{ inputs.trace-directory }}/../..:${CLASSPATH}"
-#          $NATIVE_IMAGE_TOOLS_PATH/native-images bin ${{ inputs.tools }}
-#        shell: bash
-#      - name: "Build Native Images (Docker)"
-#        if: ${{ matrix.runner == "ubuntu-latest" }}
-#        using: 'docker'
-#        run: |
-#          cd ${{ inputs.working-directory }}
-#          export CLASSPATH="${{ inputs.trace-directory }}/../..:${CLASSPATH}"
-#          $NATIVE_IMAGE_TOOLS_PATH/native-images bin ${{ inputs.tools }}
-#        shell: bash
-#      - name: "Archive Native Images"
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: native-images-${{ matrix.runner }}
-#          path: bin/*
-#          retention-days: 5
-#          if-no-files-found: error
-
-  #  - run: |
-  #      echo "Build Native Images"
-  #      cd ${{ inputs.working-directory }}
-  #      $GITHUB_ACTION_PATH/native-images "${{ inputs.output-directory }}" ${{ inputs.tools }}
-  #    shell: bash
-
-#
-#
-#  using: "composite"
-#  steps:
-#  - run: |
-#      echo "Setup GraalVM Environment"
-#      $GITHUB_ACTION_PATH/env-setup
-#      echo "ARCH=$( uname -m)" >> $GITHUB_ENV
-#    shell: bash
-#  - run: |
-#      echo "Build JAR files"
-#      cd ${{ inputs.working-directory }}
-#      ${{ inputs.build }} ${{ inputs.output-directory }}
-#    shell: bash
-#  - if: ${{ inputs.trace == 'true' }}
-#    run: |
-#      echo "Trace JAR files via tests"
-#      cd ${{ inputs.working-directory }}
-#      mkdir -p "${{ inputs.trace-directory }}"
-#      export TRACE_METADATA_DIRECTORY="${{ inputs.trace-directory }}"
-#      export PATH="${GITHUB_ACTION_PATH}:${PATH}"
-#      ${{ inputs.test }}
-#      echo "CLASSPATH=${{ inputs.trace-directory }}:${CLASSPATH}" >> $GITHUB_ENV
-#    shell: bash
-#  - run: |
-#      echo "Build Native Images"
-#      cd ${{ inputs.working-directory }}
-#      $GITHUB_ACTION_PATH/native-images "${{ inputs.output-directory }}" ${{ inputs.tools }}
-#    shell: bash
-#  - run: |
-#      echo "Test Native Outputs"
-#      cd ${{ inputs.working-directory }}
-#      ${{ inputs.test }}
-#    shell: bash
-#  - run:  |
-#      echo "Archiving Tools"
-#      tar -czf ${GITHUB_WORKSPACE}/fprime-layout-${ARCH}.tar.gz ${{ inputs.output-directory }}
-#    shell: bash
-#  - if: ${{ github.event_name == 'release' }}
-#    run: |
-#      ${GITHUB_ACTION_PATH}/publish ${GITHUB_WORKSPACE}/fprime-layout-${ARCH}.tar.gz
-#    shell: bash
-#  - if: ${{ github.event_name != 'release' }}
-#    uses: actions/upload-artifact@v3
-#    with:
-#      name: fprime-layout-${{ env.ARCH }}
-#      path: fprime-layout-${{ env.ARCH }}.tar.gz
-#      retention-days: 5

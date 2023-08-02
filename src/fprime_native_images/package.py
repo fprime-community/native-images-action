@@ -1,3 +1,4 @@
+import os
 import platform
 import sys
 import subprocess
@@ -5,10 +6,6 @@ from pathlib import Path
 from typing import List, Union
 
 from jinja2 import Environment, PackageLoader
-
-
-MANY_LINUX_SPECIFIER = "2.28"
-MAC_SPECIFIER = "10.9"
 
 
 def build_packages_from_directory(directory: Path, working: Path, outdir: Path, package_tag: str, extensions: Union[List[str], None] = None):
@@ -37,6 +34,9 @@ def build_packages_from_directory(directory: Path, working: Path, outdir: Path, 
             continue
         print(f"[INFO] Building package around {tool} with tag {package_tag}")
         directory = generate_tool_package(tool, environment, working)
+        # Patch for +x ensuring tools are executable
+        st = os.stat(str(tool.resolve()))
+        os.chmod(str(tool.resolve()), st.st_mode | st.S_IEXEC)
         build_wheel(directory, outdir, package_tag)
 
 
