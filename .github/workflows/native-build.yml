@@ -133,7 +133,7 @@ jobs:
         env:
           TWINE_PASSWORD: ${{ secrets.TESTPYPI_CREDENTIAL }}
         run: |
-          twine upload -r "$https://test.pypi.org/legacy/" -u "__token__" dist/*
+          twine upload -r testpypi -u "__token__" dist/*
         shell: bash
       - name: Publish distributions to PyPI
         env:
