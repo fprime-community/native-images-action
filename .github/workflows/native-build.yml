@@ -123,7 +123,7 @@ jobs:
           name: build-${{ matrix.package_tag }}
           path: ${{ inputs.output-directory }}
       - name: "Install Builder"
-        run: pip install fprime-native-images
+        run: pip install fprime-native-images twine
         shell: bash
       - name: "Run Builder"
         run: |
