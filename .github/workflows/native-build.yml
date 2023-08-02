@@ -106,12 +106,52 @@ jobs:
           path: bin/*
           retention-days: 5
           if-no-files-found: error
+  build-native-images-non-linux:
+    needs: build-jars
+    strategy:
+      matrix:
+        runner:
+         - runner: "macos-11"
+           tag: "macosx_10_9_universal2"
+         - runner: "odroid"
+           tag: "manylinux_2_28_aarch64"
+    runs-on: ${{ matrix.runner.runner }}
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: "Setup Native Image Tools"
+        uses: fprime-community/native-images-action@main
+      - name: "Download JARs"
+        uses: actions/download-artifact@v3
+        with:
+          name: build-jar
+          path: bin
+      - name: "Download Tracing"
+        uses: actions/download-artifact@v3
+        with:
+          name: jar-traces
+          path: ${{ inputs.trace-directory }}
+      - name: "Build Native Images"
+        run: |
+          cd ${{ inputs.working-directory }}
+          export CLASSPATH="${{ inputs.trace-directory }}/../..:${CLASSPATH}"
+          $NATIVE_IMAGE_TOOLS_PATH/native-images bin ${{ inputs.tools }}
+        shell: bash
+      - name: "Archive Native Images"
+        uses: actions/upload-artifact@v3
+        with:
+          name: native-images-${{ matrix.runner.tag }}
+          path: bin/*
+          retention-days: 5
+          if-no-files-found: error
   build-native-wheels:
-    needs: [build-native-images-linux]
+    needs: [build-native-images-linux, build-native-images-non-linux]
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package_tag: ["jar", "manylinux_2_28_x86_64"]
+        package_tag: ["jar", "manylinux_2_28_x86_64", "manylinux_2_28_aarch64", "macosx_10_9_universal2"]
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
