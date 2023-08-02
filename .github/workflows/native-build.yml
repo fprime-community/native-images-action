@@ -102,16 +102,16 @@ jobs:
       - name: "Archive Native Images"
         uses: actions/upload-artifact@v3
         with:
-          name: build-manylinux_2_28
+          name: build-manylinux_2_28_x86_64
           path: bin/*
           retention-days: 5
           if-no-files-found: error
-  build-native-packages:
+  build-native-wheels:
     needs: [build-native-images-linux]
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package_tag: ["manylinux_2_28", "jar"]
+        package_tag: ["jar", "manylinux_2_28_x86_64"]
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
@@ -129,11 +129,30 @@ jobs:
         run: |
           fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.package_tag }}
         shell: bash
+      - name: "Archiving Wheels"
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels-${{ matrix.package_tag }}
+          path: packages/dist/*
+          retention-days: 5
+          if-no-files-found: error
+  publish-native-wheels:
+    needs: [build-native-wheels]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package_tag: ["jar", "manylinux_2_28_x86_64"]
+    steps:
+      - name: "Download Package"
+        uses: actions/download-artifact@v3
+        with:
+          name: wheels-${{ matrix.package_tag }}
+          path: dist
       - name: Publish distributions to TestPyPI
         env:
           TWINE_PASSWORD: ${{ secrets.TESTPYPI_CREDENTIAL }}
         run: |
-          twine upload -r testpypi -u "__token__" packages/dist/*
+          twine upload -r testpypi -u "__token__" dist/*
         shell: bash
       - name: Publish distributions to PyPI
         env:

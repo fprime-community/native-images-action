@@ -21,7 +21,7 @@ dependencies = [
     "build",
     'importlib-metadata; python_version<"3.8"',
 ]
-version="0.1.0"
+version="0.1.1"
 
 [project.scripts]
 fprime-native-packager="fprime_native_images.__main__:main"
