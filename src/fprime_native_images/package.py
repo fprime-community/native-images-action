@@ -1,5 +1,5 @@
 import os
-import platform
+import stat
 import sys
 import subprocess
 from pathlib import Path
@@ -36,7 +36,7 @@ def build_packages_from_directory(directory: Path, working: Path, outdir: Path, 
         directory = generate_tool_package(tool, environment, working)
         # Patch for +x ensuring tools are executable
         st = os.stat(str(tool.resolve()))
-        os.chmod(str(tool.resolve()), st.st_mode | st.S_IEXEC)
+        os.chmod(str(tool.resolve()), st.st_mode | stat.S_IEXEC)
         build_wheel(directory, outdir, package_tag)
 
 
