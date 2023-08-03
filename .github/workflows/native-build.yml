@@ -52,7 +52,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: build-jar
-          path: ${{ inputs.output-directory }}
+          path: ${{ inputs.output-directory }}/*
           retention-days: 5
           if-no-files-found: error
       - if: ${{ inputs.trace }}
