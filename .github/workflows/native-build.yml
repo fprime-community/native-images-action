@@ -45,6 +45,7 @@ jobs:
         uses: fprime-community/native-images-action@main
       - name: "Building JAR files"
         run: |
+          ls
           cd ${{ inputs.working-directory }}
           ${{ inputs.build }} ${{ inputs.output-directory }}
         shell: bash
