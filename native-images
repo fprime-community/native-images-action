@@ -43,7 +43,7 @@ do
     jar_file="$tool_dir/$tool_name.jar"
     out_file="$native_dir/$tool_name"
     echo "Building $out_file"
-    evalp "$GRAALVM_JAVA_HOME/bin/native-image" $FPP_NATIVE_IMAGE_FLAGS \
+    evalp "$GRAALVM_JAVA_HOME/bin/native-image" -H:PageSize=65536 $FPP_NATIVE_IMAGE_FLAGS \
       --no-fallback --install-exit-handlers \
       -jar "$jar_file" "$out_file"
     if [ $? -ne 0 ]

@@ -99,6 +99,10 @@ jobs:
           export CLASSPATH="${{ inputs.trace-directory }}/../..:${CLASSPATH}"
           $NATIVE_IMAGE_TOOLS_PATH/native-images bin ${{ inputs.tools }}
         shell: bash
+      - name: "Testing Native Images via Unit-Tests"
+        run: |
+          cd ${{ inputs.working-directory }}
+          ${{ inputs.test }}
       - name: "Archive Native Images"
         uses: actions/upload-artifact@v3
         with:
@@ -139,6 +143,10 @@ jobs:
           export CLASSPATH="${{ inputs.trace-directory }}/../..:${CLASSPATH}"
           $NATIVE_IMAGE_TOOLS_PATH/native-images bin ${{ inputs.tools }}
         shell: bash
+      - name: "Testing Native Images via Unit-Tests"
+        run: |
+          cd ${{ inputs.working-directory }}
+          ${{ inputs.test }}
       - name: "Archive Native Images"
         uses: actions/upload-artifact@v3
         with:
