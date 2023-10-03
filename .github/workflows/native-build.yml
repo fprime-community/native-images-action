@@ -123,10 +123,10 @@ jobs:
         release: ${{ github.event_name == 'release' }}
         # Exclude odroid in non-release builds
         exclude:
-         - {runner: {
-             name: "odroid",
-             tag: "manylinux_2_28_aarch64" },
-           release: false }
+         - release: false
+        include:
+         - name: "macos-11"
+           tag: "macosx_10_9_universal2"
     runs-on: ${{ matrix.runner.name }}
     steps:
       - name: "Checkout repository"
