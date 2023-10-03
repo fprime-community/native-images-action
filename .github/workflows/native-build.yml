@@ -115,11 +115,18 @@ jobs:
     strategy:
       matrix:
         runner:
-         - runner: "macos-11"
+         - name: "macos-11"
            tag: "macosx_10_9_universal2"
-         - runner: "odroid"
+         - name: "odroid"
            tag: "manylinux_2_28_aarch64"
-    runs-on: ${{ matrix.runner.runner }}
+        release: ${{ github.event_name == 'release' }}
+        # Exclude odroid in non-release builds
+        exclude:
+         - runner:
+             name: "odroid"
+             tag: "manylinux_2_28_aarch64"
+           release: false
+    runs-on: ${{ matrix.runner.name }}
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
