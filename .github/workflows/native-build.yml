@@ -88,7 +88,8 @@ jobs:
         with:
           name: build-jar
           path: bin
-      - name: "Download Tracing"
+      - if: ${{ inputs.trace }}
+        name: "Download Tracing"
         uses: actions/download-artifact@v3
         with:
           name: jar-traces
@@ -99,10 +100,6 @@ jobs:
           export CLASSPATH="${{ inputs.trace-directory }}/../..:${CLASSPATH}"
           $NATIVE_IMAGE_TOOLS_PATH/native-images bin ${{ inputs.tools }}
         shell: bash
-      - name: "Testing Native Images via Unit-Tests"
-        run: |
-          cd ${{ inputs.working-directory }}
-          ${{ inputs.test }}
       - name: "Archive Native Images"
         uses: actions/upload-artifact@v3
         with:
@@ -110,6 +107,10 @@ jobs:
           path: bin/*
           retention-days: 5
           if-no-files-found: error
+      - name: "Testing Native Images via Unit-Tests"
+        run: |
+          cd ${{ inputs.working-directory }}
+          ${{ inputs.test }}
   build-native-images-non-linux:
     needs: build-jars
     strategy:
@@ -139,7 +140,8 @@ jobs:
         with:
           name: build-jar
           path: bin
-      - name: "Download Tracing"
+      - if: ${{ inputs.trace }}
+        name: "Download Tracing"
         uses: actions/download-artifact@v3
         with:
           name: jar-traces
@@ -150,10 +152,6 @@ jobs:
           export CLASSPATH="${{ inputs.trace-directory }}/../..:${CLASSPATH}"
           $NATIVE_IMAGE_TOOLS_PATH/native-images bin ${{ inputs.tools }}
         shell: bash
-      - name: "Testing Native Images via Unit-Tests"
-        run: |
-          cd ${{ inputs.working-directory }}
-          ${{ inputs.test }}
       - name: "Archive Native Images"
         uses: actions/upload-artifact@v3
         with:
@@ -161,6 +159,10 @@ jobs:
           path: bin/*
           retention-days: 5
           if-no-files-found: error
+      - name: "Testing Native Images via Unit-Tests"
+        run: |
+          cd ${{ inputs.working-directory }}
+          ${{ inputs.test }}
   build-native-wheels:
     needs: [build-native-images-linux, build-native-images-non-linux]
     runs-on: ubuntu-latest
