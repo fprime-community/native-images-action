@@ -87,7 +87,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: build-jar
-          path: bin
+          path:  ${{ inputs.output-directory }}
       - if: ${{ inputs.trace }}
         name: "Download Tracing"
         uses: actions/download-artifact@v3
@@ -98,13 +98,57 @@ jobs:
         run: |
           cd ${{ inputs.working-directory }}
           export CLASSPATH="${{ inputs.trace-directory }}/../..:${CLASSPATH}"
-          $NATIVE_IMAGE_TOOLS_PATH/native-images bin ${{ inputs.tools }}
+          $NATIVE_IMAGE_TOOLS_PATH/native-images ${{ inputs.output-directory }} ${{ inputs.tools }}
         shell: bash
       - name: "Archive Native Images"
         uses: actions/upload-artifact@v3
         with:
           name: build-manylinux_2_28_x86_64
-          path: bin/*
+          path:  ${{ inputs.output-directory }}/*
+          retention-days: 5
+          if-no-files-found: error
+      - name: "Testing Native Images via Unit-Tests"
+        run: |
+          cd ${{ inputs.working-directory }}
+          ${{ inputs.test }}
+  build-native-images-aarch64-linux:
+    if: ${{ github.event_name == 'release' }}
+    needs: build-jars
+    strategy:
+      matrix:
+        runner:
+         - name: "odroid"
+           tag: "manylinux_2_28_aarch64"
+    runs-on: ${{ matrix.runner.name }}
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: "Setup Native Image Tools"
+        uses: fprime-community/native-images-action@main
+      - name: "Download JARs"
+        uses: actions/download-artifact@v3
+        with:
+          name: build-jar
+          path: ${{ inputs.output-directory }}
+      - if: ${{ inputs.trace }}
+        name: "Download Tracing"
+        uses: actions/download-artifact@v3
+        with:
+          name: jar-traces
+          path: ${{ inputs.trace-directory }}
+      - name: "Build Native Images"
+        run: |
+          cd ${{ inputs.working-directory }}
+          export CLASSPATH="${{ inputs.trace-directory }}/../..:${CLASSPATH}"
+          $NATIVE_IMAGE_TOOLS_PATH/native-images ${{ inputs.output-directory }} ${{ inputs.tools }}
+        shell: bash
+      - name: "Archive Native Images"
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.runner.tag }}
+          path:  ${{ inputs.output-directory }}/*
           retention-days: 5
           if-no-files-found: error
       - name: "Testing Native Images via Unit-Tests"
@@ -116,15 +160,6 @@ jobs:
     strategy:
       matrix:
         runner:
-         - name: "macos-11"
-           tag: "macosx_10_9_universal2"
-         - name: "odroid"
-           tag: "manylinux_2_28_aarch64"
-        release: ${{ github.event_name == 'release' }}
-        # Exclude odroid in non-release builds
-        exclude:
-         - release: false
-        include:
          - name: "macos-11"
            tag: "macosx_10_9_universal2"
     runs-on: ${{ matrix.runner.name }}
@@ -139,7 +174,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: build-jar
-          path: bin
+          path: ${{ inputs.output-directory }}
       - if: ${{ inputs.trace }}
         name: "Download Tracing"
         uses: actions/download-artifact@v3
@@ -150,13 +185,13 @@ jobs:
         run: |
           cd ${{ inputs.working-directory }}
           export CLASSPATH="${{ inputs.trace-directory }}/../..:${CLASSPATH}"
-          $NATIVE_IMAGE_TOOLS_PATH/native-images bin ${{ inputs.tools }}
+          $NATIVE_IMAGE_TOOLS_PATH/native-images ${{ inputs.output-directory }} ${{ inputs.tools }}
         shell: bash
       - name: "Archive Native Images"
         uses: actions/upload-artifact@v3
         with:
           name: build-${{ matrix.runner.tag }}
-          path: bin/*
+          path:  ${{ inputs.output-directory }}/*
           retention-days: 5
           if-no-files-found: error
       - name: "Testing Native Images via Unit-Tests"
