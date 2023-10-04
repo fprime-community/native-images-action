@@ -71,11 +71,48 @@ jobs:
           path: ${{ inputs.trace-directory }}/*.json
           retention-days: 5
           if-no-files-found: error
-  build-native-images-linux:
-    needs: build-jars
+  generate-run-matricies:
+    outputs:
+      native: ${{ steps.set-matrix.outputs.native }}
+      tags: ${{ steps.set-matrix.outputs.tags }}
     runs-on: ubuntu-latest
+    steps:
+      - id: set-matrix
+        shell: python
+        run: |
+          import os
+          import json
+          matrix = {
+            "run": [
+              {
+                "runner": "macos-11",
+                "tag": "macosx_10_9_universal2"
+              },
+              {
+                "runner": "ubuntu-latest",
+                "tag": "manylinux_2_28_x86_64",
+                "container": "quay.io/pypa/manylinux_2_28_x86_64"
+              }
+            ]
+          }
+          if: ${{ github.event_name }} == 'release':
+            matrix["run"].append(
+              {
+                "runner": "odroid",
+                "tag": "manylinux_2_28_aarch64"
+              }
+            )
+          tags = {"tags": ["jar"] + [run["tag"] for run in matrix["run"]]}
+          with open(os.environ["GITHUB_OUTPUT"], "a") as file_handle:
+            file_handle.write(f"native={json.dumps(matrix)}\n")
+            file_handle.write(f"tags={json.dumps(tags)}\n")
+  build-native-images:
+    needs: build-jars
+    strategy:
+      matrix: ${{ fromJson(needs.generate-run-matricies.outputs.native) }}
+    runs-on: ${{ matrix.run.runner }}
     container:
-      image: quay.io/pypa/manylinux_2_28_x86_64
+      image:  ${{ matrix.run.container || '' }} 
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
@@ -103,94 +140,7 @@ jobs:
       - name: "Archive Native Images"
         uses: actions/upload-artifact@v3
         with:
-          name: build-manylinux_2_28_x86_64
-          path:  ${{ inputs.output-directory }}/*
-          retention-days: 5
-          if-no-files-found: error
-      - name: "Testing Native Images via Unit-Tests"
-        run: |
-          cd ${{ inputs.working-directory }}
-          ${{ inputs.test }}
-  build-native-images-aarch64-linux:
-    if: ${{ github.event_name == 'release' }}
-    needs: build-jars
-    strategy:
-      matrix:
-        runner:
-         - name: "odroid"
-           tag: "manylinux_2_28_aarch64"
-    runs-on: ${{ matrix.runner.name }}
-    steps:
-      - name: "Checkout repository"
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - name: "Setup Native Image Tools"
-        uses: fprime-community/native-images-action@main
-      - name: "Download JARs"
-        uses: actions/download-artifact@v3
-        with:
-          name: build-jar
-          path: ${{ inputs.output-directory }}
-      - if: ${{ inputs.trace }}
-        name: "Download Tracing"
-        uses: actions/download-artifact@v3
-        with:
-          name: jar-traces
-          path: ${{ inputs.trace-directory }}
-      - name: "Build Native Images"
-        run: |
-          cd ${{ inputs.working-directory }}
-          export CLASSPATH="${{ inputs.trace-directory }}/../..:${CLASSPATH}"
-          $NATIVE_IMAGE_TOOLS_PATH/native-images ${{ inputs.output-directory }} ${{ inputs.tools }}
-        shell: bash
-      - name: "Archive Native Images"
-        uses: actions/upload-artifact@v3
-        with:
-          name: build-${{ matrix.runner.tag }}
-          path:  ${{ inputs.output-directory }}/*
-          retention-days: 5
-          if-no-files-found: error
-      - name: "Testing Native Images via Unit-Tests"
-        run: |
-          cd ${{ inputs.working-directory }}
-          ${{ inputs.test }}
-  build-native-images-non-linux:
-    needs: build-jars
-    strategy:
-      matrix:
-        runner:
-         - name: "macos-11"
-           tag: "macosx_10_9_universal2"
-    runs-on: ${{ matrix.runner.name }}
-    steps:
-      - name: "Checkout repository"
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - name: "Setup Native Image Tools"
-        uses: fprime-community/native-images-action@main
-      - name: "Download JARs"
-        uses: actions/download-artifact@v3
-        with:
-          name: build-jar
-          path: ${{ inputs.output-directory }}
-      - if: ${{ inputs.trace }}
-        name: "Download Tracing"
-        uses: actions/download-artifact@v3
-        with:
-          name: jar-traces
-          path: ${{ inputs.trace-directory }}
-      - name: "Build Native Images"
-        run: |
-          cd ${{ inputs.working-directory }}
-          export CLASSPATH="${{ inputs.trace-directory }}/../..:${CLASSPATH}"
-          $NATIVE_IMAGE_TOOLS_PATH/native-images ${{ inputs.output-directory }} ${{ inputs.tools }}
-        shell: bash
-      - name: "Archive Native Images"
-        uses: actions/upload-artifact@v3
-        with:
-          name: build-${{ matrix.runner.tag }}
+          name: build-${{ matrix.run.tag }}
           path:  ${{ inputs.output-directory }}/*
           retention-days: 5
           if-no-files-found: error
@@ -202,12 +152,7 @@ jobs:
     needs: [build-native-images-linux, build-native-images-non-linux]
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        package_tag: ["jar", "manylinux_2_28_x86_64", "manylinux_2_28_aarch64", "macosx_10_9_universal2"]
-        release: ${{ github.event_name == 'release' }}
-        exclude:
-          - package_tag: "manylinux_2_28_aarch64"
-            release: false 
+      matrix: ${{ fromJson(needs.generate-run-matricies.outputs.tags) }}
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
@@ -216,19 +161,19 @@ jobs:
       - name: "Download Package"
         uses: actions/download-artifact@v3
         with:
-          name: build-${{ matrix.package_tag }}
+          name: build-${{ matrix.tag }}
           path: ${{ inputs.output-directory }}
       - name: "Install Builder"
         run: pip install fprime-native-images
         shell: bash
       - name: "Run Builder"
         run: |
-          fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.package_tag }}
+          fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.tag }}
         shell: bash
       - name: "Archiving Wheels"
         uses: actions/upload-artifact@v3
         with:
-          name: wheels-${{ matrix.package_tag }}
+          name: wheels-${{ matrix.tag }}
           path: packages/dist/*
           retention-days: 5
           if-no-files-found: error
@@ -237,13 +182,12 @@ jobs:
     needs: [build-native-wheels]
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        package_tag: ["jar", "manylinux_2_28_x86_64", "manylinux_2_28_aarch64", "macosx_10_9_universal2"]
+      matrix: ${{ fromJson(needs.generate-run-matricies.outputs.tags) }}
     steps:
       - name: "Download Package"
         uses: actions/download-artifact@v3
         with:
-          name: wheels-${{ matrix.package_tag }}
+          name: wheels-${{ matrix.tag }}
           path: dist
       - name: "Install Builder"
         run: pip install twine
