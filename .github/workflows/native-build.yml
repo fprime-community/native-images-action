@@ -95,7 +95,7 @@ jobs:
               }
             ]
           }
-          if: ${{ github.event_name }} == 'release':
+          if "${{ github.event_name }}" == 'release':
             matrix["run"].append(
               {
                 "runner": "odroid",
@@ -107,7 +107,7 @@ jobs:
             file_handle.write(f"native={json.dumps(matrix)}\n")
             file_handle.write(f"tags={json.dumps(tags)}\n")
   build-native-images:
-    needs: build-jars
+    needs: [build-jars]
     strategy:
       matrix: ${{ fromJson(needs.generate-run-matricies.outputs.native) }}
     runs-on: ${{ matrix.run.runner }}
@@ -149,7 +149,7 @@ jobs:
           cd ${{ inputs.working-directory }}
           ${{ inputs.test }}
   build-native-wheels:
-    needs: [build-native-images]
+    needs: [generate-run-matricies, build-native-images]
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.generate-run-matricies.outputs.tags) }}
