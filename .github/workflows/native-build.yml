@@ -107,7 +107,7 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a") as file_handle:
             for file_stream in [sys.stdout, file_handle]:
               print(f"native={json.dumps(matrix)}", file=file_stream)
-              print(f"tags={json.dumps(tags)}\n", file=file_stream)
+              print(f"tags={json.dumps(tags)}", file=file_stream)
   build-native-images:
     needs: [build-jars, generate-run-matricies]
     strategy:
@@ -151,7 +151,7 @@ jobs:
           cd ${{ inputs.working-directory }}
           ${{ inputs.test }}
   build-native-wheels:
-    needs: [build-native-images]
+    needs: [build-native-images, generate-run-matricies]
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.generate-run-matricies.outputs.tags) }}
@@ -181,7 +181,7 @@ jobs:
           if-no-files-found: error
   publish-native-wheels:
     if: ${{ github.event_name == 'release' }}
-    needs: [build-native-wheels]
+    needs: [build-native-wheels, generate-run-matricies]
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.generate-run-matricies.outputs.tags) }}
