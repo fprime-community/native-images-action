@@ -149,7 +149,7 @@ jobs:
           cd ${{ inputs.working-directory }}
           ${{ inputs.test }}
   build-native-wheels:
-    needs: [build-native-images-linux, build-native-images-non-linux]
+    needs: [build-native-images]
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.generate-run-matricies.outputs.tags) }}
