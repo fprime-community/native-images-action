@@ -109,7 +109,7 @@ jobs:
               print(f"native={json.dumps(matrix)}", file=file_stream)
               print(f"tags={json.dumps(tags)}\n", file=file_stream)
   build-native-images:
-    needs: [generate-run-matricies]
+    needs: [build-jars, generate-run-matricies]
     strategy:
       matrix: ${{ fromJson(needs.generate-run-matricies.outputs.native) }}
     runs-on: ${{ matrix.run.runner }}
