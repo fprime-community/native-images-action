@@ -104,10 +104,11 @@ jobs:
             )
           tags = {"tags": ["jar"] + [run["tag"] for run in matrix["run"]]}
           with open(os.environ["GITHUB_OUTPUT"], "a") as file_handle:
-            file_handle.write(f"native={json.dumps(matrix)}\n")
-            file_handle.write(f"tags={json.dumps(tags)}\n")
+            for file_stream in [sys.stdio, file_handle]:
+              print(f"native={json.dumps(matrix)}", file=file_stream)
+              print(f"tags={json.dumps(tags)}\n", file=file_stream)
   build-native-images:
-    needs: [build-jars]
+    needs: [generate-run-matricies]
     strategy:
       matrix: ${{ fromJson(needs.generate-run-matricies.outputs.native) }}
     runs-on: ${{ matrix.run.runner }}
@@ -149,7 +150,7 @@ jobs:
           cd ${{ inputs.working-directory }}
           ${{ inputs.test }}
   build-native-wheels:
-    needs: [generate-run-matricies, build-native-images]
+    needs: [build-native-images]
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.generate-run-matricies.outputs.tags) }}
