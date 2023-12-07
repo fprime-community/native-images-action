@@ -129,7 +129,7 @@ jobs:
       matrix: ${{ fromJson(needs.generate-run-matricies.outputs.native) }}
     runs-on: ${{ matrix.run.runner }}
     container:
-      image:  ${{ matrix.run.container || '' }} 
+      image:  ${{ matrix.run.container || '' }}
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
@@ -185,12 +185,18 @@ jobs:
         shell: bash
       - name: "Run Builder"
         run: |
+          FLAGS="--package-tag ${{ matrix.tag }} --extra-tools ${{ inputs.extra-tools }}"
           if [[ "${{ matrix.tag }}" == "jar" ]] && [[ "${{ inputs.meta-package }}" != "" ]]
           then
-              fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.tag }} --meta-package ${{ inputs.meta-package }} --extra-tools ${{ inputs.extra-tools }} ${{ inputs.fast-hack && --fast-hack }}
-          else
-              fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.tag }} --extra-tools ${{ inputs.extra-tools }} ${{ inputs.fast-hack && --fast-hack }}
+              echo "[INFO] Generating Meta-Package: ${{ inputs.meta-package }}"
+              FLAGS="${FLAGS} --meta-package ${{ inputs.meta-package }}"
           fi
+          if [[ "${{ inputs.fast-hack }}" == "true" ]]
+          then
+              echo "[INFO] Generating fast-hack packages"
+              FLAGS="${FLAGS} --fast-hack"
+          fi
+          fprime-native-packager ${{ inputs.output-directory }} ${FLAGS}
         shell: bash
       - name: "Archiving Wheels"
         uses: actions/upload-artifact@v3
