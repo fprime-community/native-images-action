@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm[toml]>=6.2", "wheel"]
+
+[project]
+name = "{{ package }}"
+dynamic = ["version"]
+description = "{{ package }} meta-package"
+requires-python = ">=3.8"
+keywords = ["fprime", "embedded", "nasa", "flight", "software"]
+authors = [
+  {name = "Michael Starch", email = "Michael.D.Starch@jpl.nasa.gov"},
+  {name = "Thomas Boyer-Chammard", email = "Thomas.Boyer.Chammard@jpl.nasa.gov"},
+]
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: Unix",
+    "Operating System :: POSIX",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = {{ dependencies }}
+
+[project.urls]
+homepage = "https://fprime.jpl.nasa.gov"
+documentation = "https://nasa.github.io/fprime/"
+
+[tool.setuptools_scm]
+root = "../.."

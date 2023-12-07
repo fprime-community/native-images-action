@@ -20,8 +20,10 @@ dependencies = [
     "Jinja2>=2.11.3",
     "build",
     'importlib-metadata; python_version<"3.8"',
+    "setuptools",
+    "setuptools_scm[toml]>=6.2"
 ]
-version="0.1.4"
+dynamic = ["version"]
 
 [project.scripts]
 fprime-native-packager="fprime_native_images.__main__:main"
@@ -35,3 +37,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "fprime_native_images.templates" = ["*.j2"]
+
+[tool.setuptools_scm]
+root = "."
