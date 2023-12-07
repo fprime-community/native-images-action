@@ -10,7 +10,7 @@ from jinja2 import Environment, PackageLoader
 from setuptools_scm import get_version
 
 
-def build_packages_from_directory(directory: Path, working: Path, outdir: Path, package_tag: str, extensions: Union[List[str], None] = None, meta_package:str = None, extra_tools:List = None):
+def build_packages_from_directory(directory: Path, working: Path, outdir: Path, package_tag: str, extensions: Union[List[str], None] = None, meta_package:str = None, extra_tools:List = None, fast:bool = False):
     """ Build a set of packages around tools found in a directory
 
     Given a directory this will build a PIP package that wraps each tool in that directory. Tools will be filtered by
@@ -25,6 +25,7 @@ def build_packages_from_directory(directory: Path, working: Path, outdir: Path, 
         extensions: extensions to filter tools down too
         meta_package: create a meta-package wrapping the sub-packages
         extra_tools: base list of tools for meta-package
+        fast: enable fast (deprecated) packages
     Return:
         list of packages as dependencies
     """
@@ -43,7 +44,7 @@ def build_packages_from_directory(directory: Path, working: Path, outdir: Path, 
             continue
         tools.append(f"{tool.name}=={version}")
         print(f"[INFO] Building package around {tool} with tag {package_tag}")
-        directory = generate_tool_package(tool, environment, working)
+        directory = generate_tool_package(tool, environment, working, fast=fast)
         build_wheel(directory, outdir, package_tag)
     if meta_package is not None:
         directory, _ = generate_base_package(meta_package, environment, working, tools, "pyproject.toml.meta.j2")
@@ -85,7 +86,7 @@ def generate_base_package(name: str, environment: Environment, working: Path, de
     return package_path, template_data
 
 
-def generate_tool_package(tool: Path, environment: Environment, working: Path) -> Path:
+def generate_tool_package(tool: Path, environment: Environment, working: Path, fast: bool = False) -> Path:
     """ Build a PIP package for a given tool
 
     Builds a package for a given tool using setuptools. This wraps the setup call suplying the given package and given
@@ -95,6 +96,7 @@ def generate_tool_package(tool: Path, environment: Environment, working: Path) -
         tool: path to tool to wrap
         environment: Jinja2 templating environment
         working: working directory
+        fast: enable fast (deprecated) packages
     Return:
         package that was created in dependency form (package==version)
     """
@@ -102,16 +104,19 @@ def generate_tool_package(tool: Path, environment: Environment, working: Path) -
     template_data = {
         "jar_distribution": tool.suffix == ".jar",
         "tool_name": tool_name,
+        "tool_path": str(tool.resolve()),
+        "fast_hack": fast
     }
+    # Patch for +x ensuring tools are executable
+    st = os.stat(str(tool.resolve()))
+    os.chmod(str(tool.resolve()), st.st_mode | stat.S_IEXEC)
+
     package_path, template_data = generate_base_package(tool_name, environment, working, template_data=template_data)
 
     package_source = package_path / template_data["package_corrected"]
     package_source.mkdir(parents=True, exist_ok=True)
     (package_source / "__init__.py").touch(exist_ok=True)
     shutil.copy(tool, package_source)
-    # Patch for +x ensuring tools are executable
-    st = os.stat(str((package_source / tool.name).resolve()))
-    os.chmod(str(tool.resolve()), st.st_mode | stat.S_IEXEC)
 
     template = environment.get_template("__main__.py.j2")
     with open(package_source / Path(template.filename).stem, "w") as file_handle:

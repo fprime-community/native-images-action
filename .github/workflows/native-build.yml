@@ -42,6 +42,11 @@ on:
         required: false
         default: ""
         type: string
+      fast-hack:
+        description: "Publish fast (deprecated) packages"
+        required: false
+        default: false
+        type: boolean
 jobs:
   build-jars:
     runs-on: "ubuntu-latest"
@@ -182,9 +187,9 @@ jobs:
         run: |
           if [[ "${{ matrix.tag }}" == "jar" ]] && [[ "${{ inputs.meta-package }}" != "" ]]
           then
-              fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.tag }} --meta-package ${{ inputs.meta-package }} --extra-tools ${{ inputs.extra-tools }}
+              fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.tag }} --meta-package ${{ inputs.meta-package }} --extra-tools ${{ inputs.extra-tools }} ${{ inputs.fast-hack && --fast-hack }}
           else
-              fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.tag }} --extra-tools ${{ inputs.extra-tools }}
+              fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.tag }} --extra-tools ${{ inputs.extra-tools }} ${{ inputs.fast-hack && --fast-hack }}
           fi
         shell: bash
       - name: "Archiving Wheels"
