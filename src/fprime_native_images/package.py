@@ -10,7 +10,7 @@ from jinja2 import Environment, PackageLoader
 from setuptools_scm import get_version
 
 
-def build_packages_from_directory(directory: Path, working: Path, outdir: Path, package_tag: str, extensions: Union[List[str], None] = None, meta_package: str = None):
+def build_packages_from_directory(directory: Path, working: Path, outdir: Path, package_tag: str, extensions: Union[List[str], None] = None, meta_package:str = None, extra_tools:List = None):
     """ Build a set of packages around tools found in a directory
 
     Given a directory this will build a PIP package that wraps each tool in that directory. Tools will be filtered by
@@ -24,7 +24,7 @@ def build_packages_from_directory(directory: Path, working: Path, outdir: Path, 
         package_tag: package tag to apply to package
         extensions: extensions to filter tools down too
         meta_package: create a meta-package wrapping the sub-packages
-
+        extra_tools: base list of tools for meta-package
     Return:
         list of packages as dependencies
     """
@@ -33,7 +33,7 @@ def build_packages_from_directory(directory: Path, working: Path, outdir: Path, 
     )
     version = get_version(root=(working / "..").resolve())
     extensions = extensions if extensions else ["", ".exe"]
-    tools = []
+    tools = [] if extra_tools is None else [f"{tool}=={version}" for tool in extra_tools]
     for tool in directory.glob("*"):
         if tool.suffix not in extensions:
             print(f"[INFO] Skipping {tool} with unaccepted extension")

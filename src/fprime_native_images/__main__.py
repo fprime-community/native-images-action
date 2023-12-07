@@ -13,6 +13,7 @@ def main():
     parser.add_argument("--outdir", default=None, type=Path, help="Output directory for the distribution packages")
     parser.add_argument("--package-tag", required=True, type=str, help="Package tag for packages being built")
     parser.add_argument("--meta-package", default=None, type=str, help="Name of meta-package to create")
+    parser.add_argument("--extra-tools", default=[], nargs="*", required=False, help="Extra tools to add to meta package")
     parser.add_argument("directory", type=Path, help="'bin' directory to use for input files")
     arguments = parser.parse_args()
 
@@ -36,7 +37,8 @@ def main():
             arguments.outdir,
             None if list(arguments.directory.glob("*.jar")) else arguments.package_tag,
             [".jar"] if list(arguments.directory.glob("*.jar")) else None,
-            arguments.meta_package
+            arguments.meta_package,
+            arguments.extra_tools
         )
     except OSError as oe:
         print(f"[ERROR] Could not create {arguments.outdir}. {oe}. Remove existing directory and/or grant permissions.")

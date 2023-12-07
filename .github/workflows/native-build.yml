@@ -37,6 +37,11 @@ on:
         required: false
         default: ""
         type: string
+      extra-tools:
+        description: "Extra meta-package tools publish"
+        required: false
+        default: ""
+        type: string
 jobs:
   build-jars:
     runs-on: "ubuntu-latest"
@@ -177,9 +182,9 @@ jobs:
         run: |
           if [[ "${{ matrix.tag }}" == "jar" ]] && [[ "${{ inputs.meta-package }}" != "" ]]
           then
-              fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.tag }} --meta-package ${{ inputs.meta-package }}
+              fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.tag }} --meta-package ${{ inputs.meta-package }} --extra-tools ${{ inputs.extra-tools }}
           else
-              fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.tag }}
+              fprime-native-packager ${{ inputs.output-directory }} --package-tag ${{ matrix.tag }} --extra-tools ${{ inputs.extra-tools }}
           fi
         shell: bash
       - name: "Archiving Wheels"
