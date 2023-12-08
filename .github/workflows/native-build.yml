@@ -107,7 +107,7 @@ jobs:
               {
                 "runner": "ubuntu-latest",
                 "tag": "manylinux_2_28_x86_64",
-                "container": "quay.io/pypa/manylinux_2_28_x86_64"
+                "container": "quay.io/pypa/manylinux2010_x86_64"
               }
             ]
           }
