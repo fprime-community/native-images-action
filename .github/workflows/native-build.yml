@@ -191,7 +191,7 @@ jobs:
               echo "[INFO] Generating Meta-Package: ${{ inputs.meta-package }}"
               FLAGS="${FLAGS} --meta-package ${{ inputs.meta-package }}"
           fi
-          if [[ "${{ inputs.fast-hack }}" == "true" ]]
+          elif [[ "${{ inputs.fast-hack }}" == "true" ]]
           then
               echo "[INFO] Generating fast-hack packages"
               FLAGS="${FLAGS} --fast-hack"
