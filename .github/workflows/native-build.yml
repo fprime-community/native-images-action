@@ -217,7 +217,7 @@ jobs:
       - name: "Download Package"
         uses: actions/download-artifact@v3
         with:
-          name:wheels-${{ matrix.tag }}
+          name: wheels-${{ matrix.tag }}
           path: ${{ inputs.output-directory }}
       - name: "Setup Virtual Environment"
         run: python3 -m venv ./test-venv
