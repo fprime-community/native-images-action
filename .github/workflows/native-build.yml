@@ -204,6 +204,29 @@ jobs:
           path: packages/dist/*
           retention-days: 5
           if-no-files-found: error
+  test-native-wheels:
+    needs: [build-native-wheels, generate-run-matricies]
+    strategy:
+      matrix: ${{ fromJson(needs.generate-run-matricies.outputs.native) }}
+    runs-on: ${{ matrix.run.runner }}
+    container:
+      image:  ${{ matrix.run.container || '' }}
+    steps:
+      - name: "Setup Native Image Tools"
+        uses: fprime-community/native-images-action@main
+      - name: "Download Package"
+        uses: actions/download-artifact@v3
+        with:
+          name:wheels-${{ matrix.tag }}
+          path: ${{ inputs.output-directory }}
+      - name: "Setup Virtual Environment"
+        run: python3 -m venv ./test-venv
+        shell: bash
+      - name: "Test Packages"
+        run: |
+          . ./test-venv/bin/activate
+          $NATIVE_IMAGE_TOOLS_PATH/test-native-wheels "${{ inputs.output-directory }}" "${{ inputs.meta-package }}" 
+        shell: bash
   publish-native-wheels:
     if: ${{ github.event_name == 'release' }}
     needs: [build-native-wheels, generate-run-matricies]

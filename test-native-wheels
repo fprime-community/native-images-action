@@ -1,0 +1,52 @@
+#!/bin/bash
+let rc=0
+if (( $# != 2 ))
+then
+    echo "[ERROR] Supply package output directory and exclusion filter"
+    exit 1
+fi
+excluded_packages=""
+echo "[INFO] Printing Python Environment"
+python3 --version
+pip --version
+pip freeze
+echo "[INFO] Printing Python Environment - FINISHED"
+for package in $1/*
+do
+   package_name="${package##*fprime_}"
+   package_name="${package_name%%-*}"
+   if [[ "${package_name}" == $2 ]]
+   then
+       excluded_packages="${excluded_packages} ${package}"
+       continue
+   fi 
+   echo "[INFO] Testing package inatall ${package_name}"
+   pip install --force-reinstall --no-cache ${package} || exit 2
+   if (( "$?" != 0 ))
+   then
+      echo "[INFO] Testing package inatall ${package_name} - FAILED"
+      exit 3
+   fi
+   echo "[INFO] Testing package inatall ${package_name} - PASSED"
+   tool_name="${package_name//_/-}"
+   echo "[INFO] Testing '${tool_name} --help'"
+   "${tool_name}" --help 1> /dev/null
+   if (( "$?" != 0 ))
+   then
+      echo "[INFO] Testing '${tool_name} --help' - FAILED"
+      exit 3
+   fi
+   echo "[INFO] Testing '${tool_name} --help' - PASSED"
+done
+for package in ${excluded_packages}
+do
+   echo "[INFO] Testing package inatall ${package_name}"
+   pip install ${package} || exit 2
+   if (( "$?" != 0 ))
+   then
+      echo "[INFO] Testing package inatall ${package_name} - FAILED"
+      exit 3
+   fi
+   echo "[INFO] Testing package inatall ${package_name} - PASSED"
+done
+echo "[INFO] Testing packages - PASSED"

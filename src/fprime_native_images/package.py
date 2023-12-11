@@ -43,7 +43,7 @@ def build_packages_from_directory(directory: Path, working: Path, outdir: Path, 
             print(f"[INFO] Skipping {tool} with unaccepted file type")
             continue
         fast = False if tool.suffix == ".jar" else fast
-        tools.append(f"{tool.name}=={version}")
+        tools.append(f"fprime-{tool.stem}=={version}")
         print(f"[INFO] Building package around {tool} with tag {package_tag}")
         directory = generate_tool_package(tool, environment, working, fast=fast)
         build_wheel(directory, outdir, package_tag)
