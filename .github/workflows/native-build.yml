@@ -150,8 +150,8 @@ jobs:
           path: ${{ inputs.trace-directory }}
       - name: "Build Native Images"
         run: |
+          export CLASSPATH="`cd ${{ inputs.trace-directory }}/../..; pwd`:${CLASSPATH}"
           cd ${{ inputs.working-directory }}
-          export CLASSPATH="${{ inputs.trace-directory }}/../..:${CLASSPATH}"
           $NATIVE_IMAGE_TOOLS_PATH/native-images ${{ inputs.output-directory }} ${{ inputs.tools }}
         shell: bash
       - name: "Archive Native Images"
@@ -165,8 +165,8 @@ jobs:
         run: |
           cd ${{ inputs.working-directory }}
           ${{ inputs.test }}
-  build-native-wheels:
-    needs: [build-native-images, generate-run-matricies]
+  build-wheels:
+    needs: [build-jars, build-native-images, generate-run-matricies]
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.generate-run-matricies.outputs.tags) }}
@@ -204,32 +204,37 @@ jobs:
           path: packages/dist/*
           retention-days: 5
           if-no-files-found: error
-  test-native-wheels:
-    needs: [build-native-wheels, generate-run-matricies]
+  test-wheels:
+    needs: [build-wheels, generate-run-matricies]
     strategy:
       matrix: ${{ fromJson(needs.generate-run-matricies.outputs.native) }}
     runs-on: ${{ matrix.run.runner }}
-    container:
-      image:  ${{ matrix.run.container || '' }}
     steps:
       - name: "Setup Native Image Tools"
         uses: fprime-community/native-images-action@main
-      - name: "Download Package"
+      - name: "Download Native Wheels"
         uses: actions/download-artifact@v3
         with:
-          name: wheels-${{ matrix.tag }}
-          path: ${{ inputs.output-directory }}
-      - name: "Setup Virtual Environment"
-        run: python3 -m venv ./test-venv
-        shell: bash
+          name: wheels-${{ matrix.run.tag }}
+          path: ${{ inputs.output-directory }}/native
+      - name: "Download JAR Wheels"
+        uses: actions/download-artifact@v3
+        with:
+          name: wheels-jar
+          path: ${{ inputs.output-directory }}/jars
       - name: "Test Packages"
         run: |
-          . ./test-venv/bin/activate
-          $NATIVE_IMAGE_TOOLS_PATH/test-native-wheels "${{ inputs.output-directory }}" "${{ inputs.meta-package }}" 
+          for subdir in native jars
+          do
+              python3 -m venv ./test-${subdir}
+              . ./test-${subdir}/bin/activate
+              echo "[INFO] Testin ${subdir} Wheels"
+              $NATIVE_IMAGE_TOOLS_PATH/test-wheels "${{ inputs.output-directory }}/${subdir}" "${{ inputs.meta-package }}" || exit $?
+          done
         shell: bash
-  publish-native-wheels:
+  publish-wheels:
     if: ${{ github.event_name == 'release' }}
-    needs: [build-native-wheels, generate-run-matricies]
+    needs: [test-wheels, generate-run-matricies]
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.generate-run-matricies.outputs.tags) }}
