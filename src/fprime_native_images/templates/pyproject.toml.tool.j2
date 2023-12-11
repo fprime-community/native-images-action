@@ -39,8 +39,8 @@ bin = [ "{{ tool_path }}" ]
 {{ tool_name }} = "{{ package_corrected }}.__main__:main"
 
 [tool.setuptools.package-data]
-{{ package_corrected }} = [ "{{ tool_name }}" ]
-{% endif -%}
+{{ package_corrected }} = [ "{{ tool_name }}*" ]
+{% endif %}
 
 [tool.setuptools_scm]
 root = "../.."
