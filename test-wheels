@@ -6,6 +6,7 @@ then
     exit 1
 fi
 excluded_packages=""
+pip install -U pip wheel setuptools
 echo "[INFO] Printing Python Environment"
 python3 --version
 pip --version
