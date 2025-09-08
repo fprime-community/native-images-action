@@ -7,16 +7,6 @@ evalp()
     "$@"
 }
 
-# Get tool names from a directory
-get_tool_names()
-{
-    dir=$1
-    for file in $dir/*.jar
-    do
-        basename $file .jar
-    done
-}
-
 # Check arguments
 if [ ! -d "$1" ]
 then
@@ -34,26 +24,31 @@ shift;
 tool_names="$@"
 if [[ "${tool_names}" == "" ]]
 then
-    tool_names="$(get_tool_names ${tool_dir})"
+    echo "[ERROR] No tools specified"
+    exit 1
 fi
 
-# Generate a native emage
-for tool_name in $tool_names
+# Generate a native image
+jar_file="$tool_dir/fpp.jar"
+out_file="$native_dir/fpp"
+echo "Building $out_file"
+class_path="${CLASSPATH}"
+evalp "$GRAALVM_JAVA_HOME/bin/native-image" -H:PageSize=65536 -cp "${class_path}" $FPP_NATIVE_IMAGE_FLAGS \
+    --no-fallback --install-exit-handlers \
+    -jar "$jar_file" "$out_file"
+if [ $? -ne 0 ]
+then
+    echo "[ERROR] Failed to build $out_file"
+    exit 1
+fi
+
+for tool in $tool_names
 do
-    jar_file="$tool_dir/$tool_name.jar"
-    out_file="$native_dir/$tool_name"
-    echo "Building $out_file"
-    class_path="${CLASSPATH}"
-    evalp "$GRAALVM_JAVA_HOME/bin/native-image" -H:PageSize=65536 -cp "${class_path}" $FPP_NATIVE_IMAGE_FLAGS \
-      --no-fallback --install-exit-handlers \
-      -jar "$jar_file" "$out_file"
-    if [ $? -ne 0 ]
-    then
-        echo "[ERROR] Failed to build $out_file"
-        exit 1
-    fi
-    sync; sync; sync; # Magic to fix filesystem woes
-    cp "${out_file}" "${native_final}"
+    echo "Generating wrapper for fpp-$tool in ${native_final}/fpp-$tool"
+    echo '#!/bin/sh
+    "`dirname $0`/fpp" '$tool' "$@"' > ${native_final}/fpp-$tool
+    chmod +x ${native_final}/fpp-$tool
 done
+
 mv "$tool_dir" "$tool_dir.old"
 mv "$native_final" "$tool_dir"
