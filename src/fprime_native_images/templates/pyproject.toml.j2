@@ -4,7 +4,7 @@ requires = ["setuptools", "setuptools_scm[toml]>=6.2", "wheel"]
 [project]
 name = "{{ package }}"
 dynamic = ["version"]
-description = "{{ package }} meta-package"
+description = "{{ package }} distrobution package"
 requires-python = ">=3.8"
 keywords = ["fprime", "embedded", "nasa", "flight", "software"]
 authors = [
@@ -31,6 +31,29 @@ dependencies = {{ dependencies }}
 [project.urls]
 homepage = "https://fprime.jpl.nasa.gov"
 documentation = "https://nasa.github.io/fprime/"
+
+{% if fast_hack -%}
+[tool.setuptools.data-files]
+bin = [
+{% for tool_path in tools.values() %}
+    "{{ tool_path }}",
+{% endfor %}
+]
+{% else -%}
+[project.scripts]
+fpp = "{{ package_corrected }}.__main__:main"
+
+{% for tool_name in tools.keys() %}
+{{ tool_name }} = "{{ package_corrected }}.__main__:main_{{ tool_name }}"
+{% endfor %}
+
+[tool.setuptools.package-data]
+{{ package_corrected }} = [
+{% for tool_name in tools.keys() %}
+    "{{ tool_name }}*",
+{% endfor %}
+]
+{% endif %}
 
 [tool.setuptools_scm]
 root = "../.."

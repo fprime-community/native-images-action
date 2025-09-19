@@ -4,14 +4,23 @@ import stat
 import sys
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from jinja2 import Environment, PackageLoader
 from setuptools_scm import get_version
 
 
-def build_packages_from_directory(directory: Path, working: Path, outdir: Path, package_tag: str, extensions: Union[List[str], None] = None, meta_package:str = None, extra_tools:List = None, fast:bool = False):
-    """ Build a set of packages around tools found in a directory
+def build_packages_from_directory(
+    directory: Path,
+    working: Path,
+    outdir: Path,
+    package_tag: str,
+    meta_package: str,
+    extensions: Union[List[str], None] = None,
+    extra_tools: Optional[List] = None,
+    fast: bool = False,
+):
+    """Build a set of packages around tools found in a directory
 
     Given a directory this will build a PIP package that wraps each tool in that directory. Tools will be filtered by
     the list of extensions, with a default of filter of no-extension and ".exe". If meta_package is supplied and
@@ -32,9 +41,11 @@ def build_packages_from_directory(directory: Path, working: Path, outdir: Path, 
     environment = Environment(
         loader=PackageLoader("fprime_native_images"),
     )
-    version = get_version(root=(working / "..").resolve())
+    # version = get_version(root=(working / "..").resolve())
     extensions = extensions if extensions else ["", ".exe"]
-    tools = [] if extra_tools is None else [f"{tool}=={version}" for tool in extra_tools]
+
+    fast = True
+    tools: Dict[str, str] = {}
     for tool in directory.glob("*"):
         if tool.suffix not in extensions:
             print(f"[INFO] Skipping {tool} with unaccepted extension")
@@ -42,18 +53,34 @@ def build_packages_from_directory(directory: Path, working: Path, outdir: Path, 
         elif not tool.is_file():
             print(f"[INFO] Skipping {tool} with unaccepted file type")
             continue
-        fast = False if tool.suffix == ".jar" else fast
-        tools.append(f"fprime-{tool.stem}=={version}")
-        print(f"[INFO] Building package around {tool} with tag {package_tag}")
-        directory = generate_tool_package(tool, environment, working, fast=fast)
-        build_wheel(directory, outdir, package_tag)
-    if meta_package is not None:
-        directory, _ = generate_base_package(meta_package, environment, working, tools, "pyproject.toml.meta.j2")
-        build_wheel(directory, outdir, None)
+
+        if tool.suffix == ".jar":
+            fast = False
+
+        print(f"[INFO] Adding {tool} to package")
+
+    package_dir = generate_package(
+        meta_package,
+        tools,
+        environment,
+        working,
+        fast=fast,
+    )
+
+    print(f"[INFO] Building package around {meta_package} with tag {package_tag}")
+    build_wheel(package_dir, outdir, package_tag)
 
 
-def generate_base_package(name: str, environment: Environment, working: Path, dependencies: List = None, template: str = "pyproject.toml.tool.j2", template_data: Dict[str, Any]=None) -> Tuple[Path, Dict[str, Any]]:
-    """ Generate a base python package containing a pyproject.toml
+def generate_base_package(
+    name: str,
+    environment: Environment,
+    working: Path,
+    jar_distribution = False,
+    dependencies: Optional[List] = None,
+    template_name: str = "pyproject.toml.j2",
+    template_data: Optional[Dict[str, Any]] = None,
+) -> Tuple[Path, Dict[str, Any]]:
+    """Generate a base python package containing a pyproject.toml
 
     Generate a base package containing only a pyproject.toml file. The template defaults to a tool template, but may be
     overridden.
@@ -73,22 +100,36 @@ def generate_base_package(name: str, environment: Environment, working: Path, de
     package_path = working / package
     package_path.mkdir(parents=True, exist_ok=True)
 
-    template = environment.get_template(template)
+    template = environment.get_template(template_name)
+
+    if template is None:
+        raise FileNotFoundError(f"template '{template_name}' not found")
 
     template_data = {} if template_data is None else template_data
-    template_data.update({
-        "package": package,
-        "package_corrected": package_corrected,
-        "dependencies": dependencies
-    })
+    template_data.update(
+        {
+            "jar_distribution": jar_distribution,
+            "package": package,
+            "package_corrected": package_corrected,
+            "dependencies": dependencies,
+        }
+    )
 
-    with open(package_path / Path(Path(template.filename).stem).stem, "w") as file_handle:
+    with open(
+        package_path / Path(Path(template.filename).stem).stem, "w"
+    ) as file_handle:
         file_handle.write(template.render(**template_data))
     return package_path, template_data
 
 
-def generate_tool_package(tool: Path, environment: Environment, working: Path, fast: bool = False) -> Path:
-    """ Build a PIP package for a given tool
+def generate_package(
+    package_name: str,
+    tools: Dict[str, str],
+    environment: Environment,
+    working: Path,
+    fast: bool = False,
+) -> Path:
+    """Build a PIP package for a given tool
 
     Builds a package for a given tool using setuptools. This wraps the setup call suplying the given package and given
     path for using SCM.
@@ -101,32 +142,40 @@ def generate_tool_package(tool: Path, environment: Environment, working: Path, f
     Return:
         package that was created in dependency form (package==version)
     """
-    tool_name = tool.stem if tool.stem else tool.name
     template_data = {
-        "jar_distribution": tool.suffix == ".jar",
-        "tool_name": tool_name,
-        "tool_path": str(tool.resolve()),
-        "fast_hack": fast
+        "tools": tools,
+        "fast_hack": fast,
     }
-    # Patch for +x ensuring tools are executable
-    st = os.stat(str(tool.resolve()))
-    os.chmod(str(tool.resolve()), st.st_mode | stat.S_IEXEC)
 
-    package_path, template_data = generate_base_package(tool_name, environment, working, template_data=template_data)
+    jar_distribution = True in [".jar" in x for x in tools.values()]
+
+    package_path, template_data = generate_base_package(
+        package_name,
+        environment,
+        working,
+        jar_distribution=jar_distribution,
+        template_data=template_data
+    )
 
     package_source = package_path / template_data["package_corrected"]
     package_source.mkdir(parents=True, exist_ok=True)
     (package_source / "__init__.py").touch(exist_ok=True)
-    shutil.copy(tool, package_source)
+
+    for tool_path in tools.values():
+        # Patch for +x ensuring tools are executable
+        tool = Path(tool_path)
+        st = os.stat(str(tool.resolve()))
+        os.chmod(str(tool.resolve()), st.st_mode | stat.S_IEXEC)
+        shutil.copy(tool, package_source)
 
     template = environment.get_template("__main__.py.j2")
-    with open(package_source / Path(template.filename).stem, "w") as file_handle:
+    with open(package_source / Path(template.filename).stem, "w") as file_handle:  # type: ignore
         file_handle.write(template.render(**template_data))
     return package_path
 
 
 def build_wheel(package_directory: Path, outdir: Path, package_tag: str):
-    """ Build a wheel package using 'build'
+    """Build a wheel package using 'build'
 
     Generates a wheel package using the python package builder "build". The package generated is specified as
     package_directory and the distribution output directory is specified as outdir and is forwarded to the outdir
@@ -138,11 +187,18 @@ def build_wheel(package_directory: Path, outdir: Path, package_tag: str):
         package_tag: when true will build a universal (JAR) wheel. Defaults to building platform specific wheel
     """
     build_arguments = [
-        sys.executable, "-m", "build", "--wheel", "--outdir", str(outdir.resolve()),
-        str(package_directory.resolve())
+        sys.executable,
+        "-m",
+        "build",
+        "--wheel",
+        "--outdir",
+        str(outdir.resolve()),
+        str(package_directory.resolve()),
     ]
 
     if package_tag is not None:
-        build_arguments.append(f'--config-setting=--build-option=--plat-name={ package_tag }')
+        build_arguments.append(
+            f"--config-setting=--build-option=--plat-name={ package_tag }"
+        )
     print(f"[INFO] Running: {' '.join(build_arguments)}")
     subprocess.run(build_arguments, check=True)
