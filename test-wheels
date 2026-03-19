@@ -31,7 +31,7 @@ do
    echo "[INFO] Testing package inatall ${package_name} - PASSED"
    tool_name="${package_name//_/-}"
    echo "[INFO] Testing '${tool_name} --help'"
-   "${tool_name}" --help 1> /dev/null || "${tool_name}" < /dev/null 1> /dev/null
+   "${tool_name}" 1> /dev/null
    if (( "$?" != 0 ))
    then
       echo "[INFO] Testing '${tool_name} --help' - FAILED"
