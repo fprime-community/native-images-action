@@ -84,6 +84,9 @@ jobs:
           mkdir -p "${{ inputs.trace-directory }}"
           export TRACE_METADATA_DIRECTORY="$( pwd )/${{ inputs.trace-directory }}"
           export PATH="${NATIVE_IMAGE_TOOLS_PATH}:${PATH}"
+          which java
+          cat `which java`
+          echo "${GRAALVM_JAVA_HOME} <------"
           ${{ inputs.test }}
           echo -e "Trace output files:\n$( find ${{ inputs.trace-directory }} -name *.json )"
       - name: "Archiving Tracing"
