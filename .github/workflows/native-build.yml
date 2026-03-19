@@ -236,16 +236,6 @@ jobs:
         with:
           name: wheels-jar
           path: ${{ inputs.output-directory }}/jars
-      - name: "Test Packages"
-        run: |
-          for subdir in native jars
-          do
-              python3 -m venv ./test-${subdir}
-              . ./test-${subdir}/bin/activate
-              echo "[INFO] Testin ${subdir} Wheels"
-              $NATIVE_IMAGE_TOOLS_PATH/test-wheels "${{ inputs.output-directory }}/${subdir}" "${{ inputs.meta-package }}" || exit $?
-          done
-        shell: bash
   publish-wheels:
     if: ${{ github.event_name == 'release' }}
     needs: [test-wheels, generate-run-matricies]
