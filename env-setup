@@ -7,6 +7,9 @@ graal_arch="$(uname -m)"
 if [[ "$graal_arch" == "x86_64" ]] || [[ "$graal_arch" == "x64" ]]
 then
   graal_arch="amd64"
+elif [[ "$graal_arch" == "arm64" ]] || [[ "$graal_arch" == "aarch64" ]]
+then
+  graal_arch="aarch64"
 fi
 
 graal_ver="22.3.0"
@@ -23,19 +26,21 @@ fi
 
 
 # Download Graal
-curl -L "${graal_url}" | tar -xz
+echo "Downloading GraalVM from: ${graal_url}"
+curl -L "${graal_url}" > "${graal_ar}"
+tar -xzf "${graal_ar}"
 graal_bin="${graal_dir}/bin"
 if [ ! -d "${graal_bin}" ]
 then
     graal_bin="${graal_dir}/Contents/Home/bin"
 fi
 export PATH="${graal_bin}:${PATH}"
-export GRAALVM_JAVA_HOME="$(dirname ${graal_bin})"
+export FPP_GRAALVM_JAVA_HOME="$(dirname ${graal_bin})"
 # Install native image
 ${graal_bin}/gu install native-image
 
 if [ -n "$GITHUB_ENV" ]
 then
     echo PATH="${PATH}" >> $GITHUB_ENV
-    echo GRAALVM_JAVA_HOME="${GRAALVM_JAVA_HOME}" >> $GITHUB_ENV
+    echo FPP_GRAALVM_JAVA_HOME="${FPP_GRAALVM_JAVA_HOME}" >> $GITHUB_ENV
 fi
