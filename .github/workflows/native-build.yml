@@ -52,6 +52,9 @@ jobs:
     runs-on: "ubuntu-latest"
     name: "Build Standard JARs"
     steps:
+      - name: "Setup packages"
+        run: |
+          sudo apt install -y sbt
       - name: "Checkout repository"
         uses: actions/checkout@v6
         with:
