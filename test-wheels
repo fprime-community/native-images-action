@@ -31,13 +31,13 @@ do
    echo "[INFO] Testing package inatall ${package_name} - PASSED"
    tool_name="${package_name//_/-}"
    echo "[INFO] Testing '${tool_name}'"
-   "${tool_name}" 1> /dev/null </dev/null
+   "${tool_name}" --help 1> /dev/null </dev/null
    if (( "$?" != 0 ))
    then
-      echo "[INFO] Testing '${tool_name}' - FAILED"
+      echo "[INFO] Testing '${tool_name} --help' - FAILED"
       exit 3
    fi
-   echo "[INFO] Testing '${tool_name}' - PASSED"
+   echo "[INFO] Testing '${tool_name} --help' - PASSED"
 done
 for package in ${excluded_packages}
 do
